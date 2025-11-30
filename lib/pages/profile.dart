@@ -189,12 +189,18 @@ class _ProfileState extends State<Profile> {
                           // Thẻ LogOut
                           GestureDetector(
                             onTap: () async {
+                              // ✅ FIX: Xóa dữ liệu user, bao gồm địa chỉ
+                              await SharedpreferenceHelper().clearAllUserData();
                               await AuthMethods().SignOut();
+
                               // ignore: use_build_context_synchronously
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => Onboarding()));
+                              Navigator.pushAndRemoveUntil(
+                                // Dùng pushAndRemoveUntil để xóa stack
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => Onboarding()),
+                                (Route<dynamic> route) => false,
+                              );
                             },
                             child: Container(
                               margin: EdgeInsets.only(left: 20.0, right: 20.0),
@@ -243,12 +249,18 @@ class _ProfileState extends State<Profile> {
                           // Thẻ Delete Account
                           GestureDetector(
                             onTap: () async {
+                              // ✅ FIX: Xóa dữ liệu user, bao gồm địa chỉ
+                              await SharedpreferenceHelper().clearAllUserData();
                               await AuthMethods().deleteuser();
+
                               // ignore: use_build_context_synchronously
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => Onboarding()));
+                              Navigator.pushAndRemoveUntil(
+                                // Dùng pushAndRemoveUntil để xóa stack
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => Onboarding()),
+                                (Route<dynamic> route) => false,
+                              );
                             },
                             child: Container(
                               margin: EdgeInsets.only(left: 20.0, right: 20.0),
@@ -294,7 +306,7 @@ class _ProfileState extends State<Profile> {
                           SizedBox(
                             height: 30.0, // Khoảng trống an toàn cuối cùng
                           ),
-                        ])) // [FIX CÚ PHÁP]: Dấu ngoặc đóng cuối cùng của Container
+                        ]))
                   ],
                 ),
               ),

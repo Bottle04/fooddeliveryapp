@@ -21,7 +21,8 @@ class SharedpreferenceHelper {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.setString(userEmailKey, getUserEmail);
   }
-    Future<bool> saveUserAddress(String getUserAddress) async {
+
+  Future<bool> saveUserAddress(String getUserAddress) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.setString(userAddresskey, getUserAddress);
   }
@@ -40,7 +41,8 @@ class SharedpreferenceHelper {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(userNameKey);
   }
-    Future<String?> getUserAddress() async {
+
+  Future<String?> getUserAddress() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(userAddresskey);
   }
@@ -49,10 +51,26 @@ class SharedpreferenceHelper {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(userImagekey);
   }
-  
+
   Future<String?> getUserEmail() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(userEmailKey);
   }
-}
 
+  // ✅ HÀM MỚI: XÓA ĐỊA CHỈ NGƯỜI DÙNG
+  Future<bool> removeUserAddress() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.remove(userAddresskey);
+  }
+
+  // Bạn nên có hàm xóa toàn bộ dữ liệu người dùng khi logout để đảm bảo không bị lỗi dữ liệu chéo
+  Future<bool> clearAllUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(userIdKey);
+    await prefs.remove(userNameKey);
+    await prefs.remove(userEmailKey);
+    await prefs.remove(userImagekey);
+    await prefs.remove(userAddresskey);
+    return true;
+  }
+}

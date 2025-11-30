@@ -2,3 +2,6 @@ String publishedkey =
     "pk_test_51SXMknLHjOGXoURZs8RK4IHDPOKM553Ys6CGzhITr09MR1Iw3OZK9licnwGeNh71RqCUAbBdxQ8OnK1SAABggHIO006ZMQjQ25";
 String secretkey =
     "sk_test_51SXMknLHjOGXoURZD9BrJ9Dcc8RxKJKPY0adunIOsgbEX0LnacPDrCjbR5bfc2x53DnjvvjKE8mfIR93oaMJquKw00S1tVOA6k";
+const String CLOUDINARY_CLOUD_NAME = "dkn8mmvyw";
+const String CLOUDINARY_API_KEY = "863528186415452";
+const String CLOUDINARY_API_SECRET = "aLk2u-q2RzaVgEwVIxzPYUn6Vqc";

@@ -15,11 +15,16 @@ class _OnboardingState extends State<Onboarding> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Container(
-        margin: EdgeInsets.only(top: 40.0),
+        // Thêm padding ngang để nội dung không chạm mép màn hình
+        margin: EdgeInsets.only(top: 40.0, left: 20.0, right: 20.0),
         child: Column(
           children: [
-            Image.asset(
-              "images/onboard.png",
+            // FIX LỖI BỐ CỤC: Bọc Image bằng Expanded để nó chiếm không gian còn lại
+            Expanded(
+              child: Image.asset(
+                "images/onboard.png",
+                fit: BoxFit.contain, // Đảm bảo hình ảnh co giãn đúng
+              ),
             ),
             SizedBox(
               height: 20.0,
@@ -37,17 +42,20 @@ class _OnboardingState extends State<Onboarding> {
               textAlign: TextAlign.center,
               style: AppWidget.SimpleTextFeildStyle(),
             ),
-            SizedBox(height: 30.0,),
+            SizedBox(
+              height: 30.0,
+            ), // Khoảng cách trước nút
             GestureDetector(
-              onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> SignUp()));
+              onTap: () {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (context) => SignUp()));
               },
               child: Container(
                 height: 60,
                 width: MediaQuery.of(context).size.width / 2,
                 decoration: BoxDecoration(
-                  color: Color(0xff8c592a),borderRadius: BorderRadius.circular(20)
-                ),
+                    color: Color(0xff8c592a),
+                    borderRadius: BorderRadius.circular(20)),
                 child: Center(
                   child: Text(
                     "Get Started",
@@ -58,7 +66,10 @@ class _OnboardingState extends State<Onboarding> {
                   ),
                 ),
               ),
-            )
+            ),
+            SizedBox(
+              height: 20.0,
+            ) // Thêm khoảng cách an toàn dưới cùng
           ],
         ),
       ),

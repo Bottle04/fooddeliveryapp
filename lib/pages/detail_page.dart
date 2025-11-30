@@ -11,10 +11,17 @@ import 'package:http/http.dart' as http;
 import 'package:random_string/random_string.dart';
 
 class DetailPage extends StatefulWidget {
-  String image;
-  String name;
-  String price;
-  DetailPage({required this.image, required this.name, required this.price});
+  final String image;
+  final String name;
+  final String price;
+  final String description;
+
+  const DetailPage(
+      {super.key,
+      required this.image,
+      required this.name,
+      required this.price,
+      required this.description});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -23,30 +30,46 @@ class DetailPage extends StatefulWidget {
 class _DetailPageState extends State<DetailPage> {
   TextEditingController addresscontroller = new TextEditingController();
   Map<String, dynamic>? paymentIntent;
-  String? name, id, email, address, wallet;
+  String? name,
+      id,
+      email,
+      address,
+      wallet; // Giữ biến address để lưu địa chỉ đã lưu ban đầu
   int quantity = 1, totalprice = 0;
+
+  @override
+  void initState() {
+    totalprice = int.parse(widget.price);
+    // Vẫn lấy địa chỉ đã lưu để hiển thị mặc định
+    getthesharedpref();
+    getUserWallet();
+    super.initState();
+  }
 
   getthesharedpref() async {
     name = await SharedpreferenceHelper().getUserName();
     id = await SharedpreferenceHelper().getUserId();
     email = await SharedpreferenceHelper().getUserEmail();
     address = await SharedpreferenceHelper().getUserAddress();
+    addresscontroller.text = address ?? ""; // Gán địa chỉ đã lưu vào controller
     setState(() {});
   }
 
   getUserWallet() async {
     await getthesharedpref();
-    QuerySnapshot querySnapshot =
-        await DatabaseMethods().getUserWalletbyemail(email!);
-    wallet = "${querySnapshot.docs[0]["Wallet"]}";
+    if (email != null) {
+      QuerySnapshot querySnapshot =
+          await DatabaseMethods().getUserWalletbyemail(email!);
+      if (querySnapshot.docs.isNotEmpty) {
+        wallet = querySnapshot.docs[0].get('Wallet');
+      }
+    }
     setState(() {});
   }
 
-  @override
-  void initState() {
-    totalprice = int.parse(widget.price);
-    getUserWallet();
-    super.initState();
+  void calculateTotalPrice() {
+    int priceInt = int.tryParse(widget.price) ?? 0;
+    totalprice = priceInt * quantity;
   }
 
   @override
@@ -54,11 +77,11 @@ class _DetailPageState extends State<DetailPage> {
     return Scaffold(
       body: SingleChildScrollView(
         child: Container(
-          // [SỬA LỖI 1]: Thêm right: 20.0 để căn lề đều 2 bên
           margin: EdgeInsets.only(top: 50.0, left: 20.0, right: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ... (Phần nút Back, Ảnh, Tên, Giá, Mô tả giữ nguyên)
               GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
@@ -78,10 +101,27 @@ class _DetailPageState extends State<DetailPage> {
                 height: 10.0,
               ),
               Center(
-                  child: Image.asset(
+                  child: Image.network(
                 widget.image,
                 height: MediaQuery.of(context).size.height / 3,
                 fit: BoxFit.contain,
+                loadingBuilder: (BuildContext context, Widget child,
+                    ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+                  return Container(
+                    height: MediaQuery.of(context).size.height / 3,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
+                    "images/pan.png",
+                    height: MediaQuery.of(context).size.height / 3,
+                    fit: BoxFit.contain,
+                  );
+                },
               )),
               SizedBox(
                 height: 20.0,
@@ -98,8 +138,7 @@ class _DetailPageState extends State<DetailPage> {
                 height: 30.0,
               ),
               Text(
-                "We’ve established that most cheeses will melt when baked atop pizza. But which will not only melt but stretch into those gooey, messy strands that can make pizza eating such a delightfully challenging endeavor?",
-                // [YÊU CẦU]: Font chữ nhỏ hơn (15.0) và nhạt hơn một chút cho dễ đọc
+                widget.description,
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 15.0,
@@ -110,6 +149,7 @@ class _DetailPageState extends State<DetailPage> {
               SizedBox(
                 height: 30.0,
               ),
+              // ... (Phần Quantity giữ nguyên)
               Text(
                 "Quantity",
                 style: AppWidget.SimpleTextFeildStyle(),
@@ -180,7 +220,7 @@ class _DetailPageState extends State<DetailPage> {
               SizedBox(
                 height: 40.0,
               ),
-              // [SỬA LỖI OVERFLOW Ở ĐÂY]
+              // Nút Order
               Row(
                 mainAxisAlignment:
                     MainAxisAlignment.spaceBetween, // Đổi thành spaceBetween
@@ -202,15 +242,31 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                   ),
                   SizedBox(
-                    width: 20.0, // Giảm khoảng cách một chút (từ 30 xuống 20)
+                    width: 20.0, // Giảm khoảng cách
                   ),
-                  // Bọc nút Order trong Expanded để nó tự co giãn
                   Expanded(
                     child: GestureDetector(
                       onTap: () async {
-                        if (address == null) {
-                          openBox();
-                        } else if (int.parse(wallet!) > totalprice) {
+                        String finalAddress = addresscontroller.text
+                            .trim(); // Lấy địa chỉ cuối cùng từ Controller
+
+                        // FIX 1: Kiểm tra nếu chưa có địa chỉ, gọi hộp thoại nhập
+                        if (finalAddress.isEmpty) {
+                          await openBox(); // Chờ người dùng nhập
+                          finalAddress = addresscontroller.text
+                              .trim(); // Lấy giá trị sau khi đóng hộp thoại
+
+                          if (finalAddress.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text(
+                                    "Please provide a delivery address.")));
+                            return;
+                          }
+                        }
+
+                        // FIX 2: Bắt đầu logic đặt hàng
+                        if (int.parse(wallet!) > totalprice) {
                           int updatedwallet = int.parse(wallet!) - totalprice;
                           await DatabaseMethods()
                               .updateUserWallet(updatedwallet.toString(), id!);
@@ -225,7 +281,8 @@ class _DetailPageState extends State<DetailPage> {
                             "FoodImage": widget.image,
                             "OrderId": orderId,
                             "Status": "Pending",
-                            "Address": address ?? addresscontroller.text,
+                            "Address":
+                                finalAddress, // SỬ DỤNG ĐỊA CHỈ TỪ CONTROLLER
                           };
                           await DatabaseMethods()
                               .addUserOrderDetails(userOrderMap, id!, orderId);
@@ -254,9 +311,7 @@ class _DetailPageState extends State<DetailPage> {
                         elevation: 3.0,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          height:
-                              60, // Đồng bộ chiều cao với nút giá tiền (60px đẹp hơn 70px)
-                          // width: 200, <--- ĐÃ XÓA CHIỀU RỘNG CỐ ĐỊNH
+                          height: 60, // Đồng bộ chiều cao với nút giá tiền
                           decoration: BoxDecoration(
                               color: Colors.black,
                               borderRadius: BorderRadius.circular(20)),
@@ -279,6 +334,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
+  // ... (Hàm makePayment, displayPaymentSheet, createPaymentIntent, calculateAmount giữ nguyên)
   Future<void> makePayment(String amount) async {
     try {
       paymentIntent = await createPaymentIntent(amount, 'USD');
@@ -310,7 +366,8 @@ class _DetailPageState extends State<DetailPage> {
           "FoodImage": widget.image,
           "OrderId": orderId,
           "Status": "Pending",
-          "Address": address ?? addresscontroller.text,
+          "Address":
+              addresscontroller.text.trim(), // SỬ DỤNG ĐỊA CHỈ TỪ CONTROLLER
         };
         await DatabaseMethods().addUserOrderDetails(userOrderMap, id!, orderId);
         await DatabaseMethods().addAdminOrderDetails(userOrderMap, orderId);
@@ -381,6 +438,7 @@ class _DetailPageState extends State<DetailPage> {
     return calculatedAmount.toString();
   }
 
+  // FIX 3: Hàm openBox không lưu vào Shared Preferences và chỉ làm việc với controller
   Future openBox() => showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -422,6 +480,7 @@ class _DetailPageState extends State<DetailPage> {
                           borderRadius: BorderRadius.circular(10)),
                       child: TextField(
                         controller: addresscontroller,
+                        // Nếu addresscontroller rỗng, hiển thị placeholder
                         decoration: InputDecoration(
                             border: InputBorder.none, hintText: "Address"),
                       ),
@@ -431,9 +490,9 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     GestureDetector(
                       onTap: () async {
-                        address = addresscontroller.text;
-                        await SharedpreferenceHelper()
-                            .saveUserAddress(addresscontroller.text);
+                        // KHÔNG LƯU vào SharedPreferenceHelper
+                        // Gán tạm address để giữ logic cũ nếu cần nhưng không cần thiết ở đây
+                        // address = addresscontroller.text;
                         Navigator.pop(context);
                       },
                       child: Center(

@@ -72,6 +72,8 @@ class _OrderState extends State<Order> {
           itemCount: docs.length,
           itemBuilder: (context, index) {
             DocumentSnapshot ds = docs[index];
+            String foodImage = ds["FoodImage"] ?? ""; // Lấy URL ảnh
+
             return Container(
               margin:
                   const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
@@ -93,7 +95,7 @@ class _OrderState extends State<Order> {
                   child: Column(
                     children: [
                       const SizedBox(height: 5.0),
-                      // [FIX LỖI]: Row Address
+                      // Row Address
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.start, // Căn lề trái
@@ -116,44 +118,65 @@ class _OrderState extends State<Order> {
                       const Divider(),
                       Row(
                         children: [
-                          Image.asset(
-                            ds["FoodImage"] ?? "",
-                            height: 120,
-                            width: 120,
-                            fit: BoxFit.cover,
+                          // Ảnh món ăn (FIX LỖI: Image.network)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              foodImage, // Sử dụng URL mạng
+                              height: 120,
+                              width: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Fallback nếu URL Cloudinary bị lỗi
+                                return Image.asset(
+                                  "images/pan.png", // Dùng ảnh asset dự phòng
+                                  height: 120,
+                                  width: 120,
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
                           ),
                           const SizedBox(width: 20.0),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(ds["FoodName"] ?? "",
-                                  style: AppWidget.boldTextFeildStyle()),
-                              const SizedBox(height: 5.0),
-                              Row(
-                                children: [
-                                  const Icon(Icons.format_list_numbered,
-                                      color: Color(0xffef2b39)),
-                                  const SizedBox(width: 10.0),
-                                  Text(ds["Quantity"] ?? "0",
-                                      style: AppWidget.boldTextFeildStyle()),
-                                  const SizedBox(width: 30.0),
-                                  const Icon(Icons.monetization_on,
-                                      color: Color(0xffef2b39)),
-                                  const SizedBox(width: 10.0),
-                                  Text("\$${ds["Total"] ?? "0"}",
-                                      style: AppWidget.boldTextFeildStyle()),
-                                ],
-                              ),
-                              const SizedBox(height: 5.0),
-                              Text(
-                                "${ds["Status"] ?? ""}!",
-                                style: const TextStyle(
-                                  color: Color(0xffef2b39),
-                                  fontSize: 20.0,
-                                  fontWeight: FontWeight.bold,
+                          // Thông tin món ăn (FIX LỖI: Expanded/Flexible)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tên món ăn (FIX LỖI TRÀN)
+                                Text(
+                                  ds["FoodName"] ?? "",
+                                  style: AppWidget.boldTextFeildStyle(),
+                                  maxLines: 2, // Giới hạn dòng
+                                  overflow: TextOverflow.ellipsis, // Dấu ...
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 5.0),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.format_list_numbered,
+                                        color: Color(0xffef2b39)),
+                                    const SizedBox(width: 10.0),
+                                    Text(ds["Quantity"] ?? "0",
+                                        style: AppWidget.boldTextFeildStyle()),
+                                    const SizedBox(width: 30.0),
+                                    const Icon(Icons.monetization_on,
+                                        color: Color(0xffef2b39)),
+                                    const SizedBox(width: 10.0),
+                                    Text("\$${ds["Total"] ?? "0"}",
+                                        style: AppWidget.boldTextFeildStyle()),
+                                  ],
+                                ),
+                                const SizedBox(height: 5.0),
+                                Text(
+                                  "${ds["Status"] ?? ""}!",
+                                  style: const TextStyle(
+                                    color: Color(0xffef2b39),
+                                    fontSize: 20.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

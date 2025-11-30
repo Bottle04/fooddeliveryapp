@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/Admin/all_order.dart';
 import 'package:fooddeliveryapp/Admin/manage_users.dart';
+import 'package:fooddeliveryapp/Admin/manage_menu.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
 
 class HomeAdmin extends StatefulWidget {
@@ -34,18 +35,20 @@ class _HomeAdminState extends State<HomeAdmin> {
               height: 40.0,
             ),
             Expanded(
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    color: Color(0xFFececf8),
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30))),
+                child: Container(
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                  color: Color(0xFFececf8),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30))),
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
                     SizedBox(
-                      height: 80.0,
+                      height: 40.0,
                     ),
+                    // 1. Manage Orders Button
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -102,8 +105,9 @@ class _HomeAdminState extends State<HomeAdmin> {
                       ),
                     ),
                     SizedBox(
-                      height: 50.0,
+                      height: 30.0,
                     ),
+                    // 2. Manage Users Button
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -158,11 +162,72 @@ class _HomeAdminState extends State<HomeAdmin> {
                           ),
                         ),
                       ),
-                    )
+                    ),
+                    SizedBox(
+                      height: 30.0,
+                    ),
+
+                    // 3. Manage Menu Button (NEW)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ManageMenu()));
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(left: 20.0, right: 20.0),
+                        child: Material(
+                          elevation: 3.0,
+                          borderRadius: BorderRadius.circular(30),
+                          child: Container(
+                            padding: EdgeInsets.only(
+                                left: 20.0,
+                                right: 20.0,
+                                top: 10.0,
+                                bottom: 10.0),
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Image.asset(
+                                  "images/pan.png",
+                                  height: 120,
+                                  width: 120,
+                                  fit: BoxFit.cover,
+                                ),
+                                Text(
+                                  "Manage\nMenu",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 25.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Container(
+                                    padding: EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                        color: Color(0xffef2b39),
+                                        borderRadius:
+                                            BorderRadius.circular(30)),
+                                    child: Icon(
+                                      Icons.fastfood,
+                                      color: Colors.white,
+                                      size: 30.0,
+                                    ))
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 50.0),
                   ],
                 ),
               ),
-            )
+            ))
           ],
         ),
       ),

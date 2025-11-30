@@ -9,6 +9,23 @@ class DatabaseMethods {
         .set(userInfoMap);
   }
 
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> CODE MỚI <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  // HÀM THÊM SẢN PHẨM MỚI (CREATE) - DÙNG TRONG add_food.dart
+  Future addFoodItem(Map<String, dynamic> foodInfoMap, String category) async {
+    return await FirebaseFirestore.instance
+        .collection(category)
+        .doc()
+        .set(foodInfoMap);
+  }
+
+  // HÀM LẤY SẢN PHẨM THEO CATEGORY (READ) - DÙNG TRONG home.dart
+  Future<Stream<QuerySnapshot>> getFoodItems(String category) async {
+    return FirebaseFirestore.instance.collection(category).snapshots();
+  }
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END MỚI <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
   Future addUserOrderDetails(
       Map<String, dynamic> userOrderMap, String id, String orderid) async {
     return await FirebaseFirestore.instance
@@ -92,19 +109,19 @@ class DatabaseMethods {
         .add(userOrderMap);
   }
 
-    Future<Stream<QuerySnapshot>> getUserTransactions(String id) async {
+  Future<Stream<QuerySnapshot>> getUserTransactions(String id) async {
     return await FirebaseFirestore.instance
-        .collection("users").doc(id)
+        .collection("users")
+        .doc(id)
         .collection("Transaction")
         .snapshots();
   }
 
-    Future<QuerySnapshot> search(String updatedname) async {
+  Future<QuerySnapshot> search(String updatedname) async {
     return await FirebaseFirestore.instance
         .collection("Food")
         .where("SearchKey",
             isEqualTo: updatedname.substring(0, 1).toUpperCase())
         .get();
   }
-
 }
