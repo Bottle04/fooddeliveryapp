@@ -4,8 +4,8 @@ import 'package:fooddeliveryapp/pages/login.dart';
 import 'package:fooddeliveryapp/service/database.dart';
 import 'package:fooddeliveryapp/service/shared_pref.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
-import 'package:random_string/random_string.dart';
 import 'package:fooddeliveryapp/pages/bottomnav.dart';
+// KHÔNG CẦN random_string NỮA
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -28,7 +28,14 @@ class _SignUpState extends State<SignUp> {
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
 
-        String Id = randomAlphaNumeric(10);
+        User? user = userCredential.user;
+        if (user == null) {
+          throw FirebaseAuthException(
+              code: "user-not-found", message: "User creation failed.");
+        }
+
+        // ✅ FIX LỖI ID: Lấy UID THẬT của Firebase Auth
+        String Id = user.uid;
 
         Map<String, dynamic> userInfoMap = {
           "Name": namecontroller.text,
@@ -37,9 +44,12 @@ class _SignUpState extends State<SignUp> {
           "Wallet": "0",
         };
 
+        // Ghi dữ liệu vào Shared Prefs với ID THẬT
         await SharedpreferenceHelper().saveUserEmail(email);
         await SharedpreferenceHelper().saveUserName(namecontroller.text);
         await SharedpreferenceHelper().saveUserId(Id);
+
+        // Ghi dữ liệu vào Firestore với Document ID là ID THẬT
         await DatabaseMethods().addUserDetails(userInfoMap, Id);
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -112,7 +122,6 @@ class _SignUpState extends State<SignUp> {
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   width: double.infinity,
                   child: SingleChildScrollView(
-                    // padding dưới 20.0 vẫn có thể gây lỗi overflow, nhưng tôi giữ lại vì nó đã được tối ưu từ lần trước
                     padding: EdgeInsets.only(bottom: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +183,7 @@ class _SignUpState extends State<SignUp> {
                         SizedBox(height: 30),
                         Center(
                           child: GestureDetector(
-                            onTap: () {
+                            onTap: () async {
                               if (namecontroller.text.isNotEmpty &&
                                   mailcontroller.text.isNotEmpty &&
                                   passwordcontroller.text.isNotEmpty) {
@@ -183,7 +192,7 @@ class _SignUpState extends State<SignUp> {
                                   email = mailcontroller.text;
                                   password = passwordcontroller.text;
                                 });
-                                registration();
+                                await registration();
                               }
                             },
                             child: Container(
@@ -204,7 +213,6 @@ class _SignUpState extends State<SignUp> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // ❗ ĐÃ SỬA: Bọc Text dài bằng Flexible để khắc phục lỗi tràn ngang
                             Flexible(
                               child: Text(
                                 "Already have an account?",

@@ -46,6 +46,15 @@ class _ManageUsersState extends State<ManageUsers> {
           itemBuilder: (context, index) {
             DocumentSnapshot ds = snapshot.data.docs[index];
 
+            // ✅ SỬA LỖI: Lấy dữ liệu dưới dạng Map và kiểm tra sự tồn tại của field
+            Map<String, dynamic>? data = ds.data() as Map<String, dynamic>?;
+
+            // Lấy giá trị an toàn, tránh lỗi Bad state: field "Name" does not exist
+            final userName = data?['Name'] ?? 'N/A User';
+            final userEmail = data?['Email'] ?? 'N/A Email';
+            // Dùng Id trong field, nếu không có thì dùng Document ID
+            final userId = data?['Id'] ?? ds.id;
+
             return Container(
               margin: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: Material(
@@ -80,7 +89,7 @@ class _ManageUsersState extends State<ManageUsers> {
                                 SizedBox(width: 10.0),
                                 Expanded(
                                   child: Text(
-                                    ds["Name"],
+                                    userName, // Đã được bảo vệ
                                     style: AppWidget.boldTextFeildStyle(),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -94,7 +103,7 @@ class _ManageUsersState extends State<ManageUsers> {
                                 SizedBox(width: 10.0),
                                 Expanded(
                                   child: Text(
-                                    ds["Email"],
+                                    userEmail, // Đã được bảo vệ
                                     style: AppWidget.SimpleTextFeildStyle(),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -104,7 +113,8 @@ class _ManageUsersState extends State<ManageUsers> {
                             SizedBox(height: 10.0),
                             GestureDetector(
                               onTap: () async {
-                                await DatabaseMethods().deleteUser(ds["Id"]);
+                                // Sử dụng userId Đã được bảo vệ
+                                await DatabaseMethods().deleteUser(userId);
                               },
                               child: Container(
                                 height: 30,

@@ -61,124 +61,168 @@ class _AllOrdersState extends State<AllOrders> {
                                 SizedBox(
                                   width: 10.0,
                                 ),
-                                Text(
-                                  ds["Address"],
-                                  style: AppWidget.SimpleTextFeildStyle(),
+                                // ĐỊA CHỈ: Bọc trong Flexible để không tràn
+                                Flexible(
+                                  child: Text(
+                                    ds["Address"],
+                                    style: AppWidget.SimpleTextFeildStyle(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 )
                               ],
                             ),
                             Divider(),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Image.asset(
-                                  ds["FoodImage"],
-                                  height: 120,
-                                  width: 120,
-                                  fit: BoxFit.cover,
+                                // Ảnh sản phẩm
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: Image.network(
+                                    ds["FoodImage"],
+                                    height: 120,
+                                    width: 120,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset("images/pan.png",
+                                          height: 120,
+                                          width: 120,
+                                          fit: BoxFit.cover);
+                                    },
+                                  ),
                                 ),
                                 SizedBox(
                                   width: 20.0,
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      ds["FoodName"],
-                                      style: AppWidget.boldTextFeildStyle(),
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.format_list_numbered,
-                                            color: Color(0xffef2b39)),
-                                        SizedBox(
-                                          width: 10.0,
+                                // Chi tiết đơn hàng: BỌC TRONG EXPANDED (đã làm)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // TÊN MÓN ĂN
+                                      Text(
+                                        ds["FoodName"],
+                                        style: AppWidget.boldTextFeildStyle(),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      // Quantity and Total
+                                      Row(
+                                        children: [
+                                          Icon(Icons.format_list_numbered,
+                                              color: Color(0xffef2b39)),
+                                          SizedBox(
+                                            width: 10.0,
+                                          ),
+                                          Text(
+                                            ds["Quantity"],
+                                            style:
+                                                AppWidget.boldTextFeildStyle(),
+                                          ),
+                                          SizedBox(
+                                            width: 30.0,
+                                          ),
+                                          Icon(Icons.monetization_on,
+                                              color: Color(0xffef2b39)),
+                                          SizedBox(
+                                            width: 10.0,
+                                          ),
+                                          Text(
+                                            "\$" + ds["Total"],
+                                            style:
+                                                AppWidget.boldTextFeildStyle(),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      // TÊN KHÁCH HÀNG
+                                      Row(
+                                        children: [
+                                          Icon(Icons.person,
+                                              color: Color(0xffef2b39)),
+                                          SizedBox(
+                                            width: 10.0,
+                                          ),
+                                          Flexible(
+                                            // Bọc trong Flexible
+                                            child: Text(
+                                              ds["Name"],
+                                              style: AppWidget
+                                                  .SimpleTextFeildStyle(),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      // EMAIL KHÁCH HÀNG
+                                      Row(
+                                        children: [
+                                          Icon(Icons.mail,
+                                              color: Color(0xffef2b39)),
+                                          SizedBox(
+                                            width: 10.0,
+                                          ),
+                                          Flexible(
+                                            // Bọc trong Flexible
+                                            child: Text(
+                                              ds["Email"],
+                                              style: AppWidget
+                                                  .SimpleTextFeildStyle(),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      Text(
+                                        ds["Status"] + "!",
+                                        style: TextStyle(
+                                            color: Color(0xffef2b39),
+                                            fontSize: 20.0,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          await DatabaseMethods()
+                                              .updateAdminOrder(ds.id);
+                                          await DatabaseMethods()
+                                              .updateUserOrder(ds["Id"], ds.id);
+                                        },
+                                        child: Container(
+                                          width: 100,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          child: Center(
+                                              child: Text(
+                                            "Delivered",
+                                            style:
+                                                AppWidget.whiteTextFeildStyle(),
+                                          )),
                                         ),
-                                        Text(
-                                          ds["Quantity"],
-                                          style: AppWidget.boldTextFeildStyle(),
-                                        ),
-                                        SizedBox(
-                                          width: 30.0,
-                                        ),
-                                        Icon(Icons.monetization_on,
-                                            color: Color(0xffef2b39)),
-                                        SizedBox(
-                                          width: 10.0,
-                                        ),
-                                        Text(
-                                          "\$" + ds["Total"],
-                                          style: AppWidget.boldTextFeildStyle(),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.person,
-                                            color: Color(0xffef2b39)),
-                                        SizedBox(
-                                          width: 10.0,
-                                        ),
-                                        Text(
-                                          ds["Name"],
-                                          style:
-                                              AppWidget.SimpleTextFeildStyle(),
-                                        )
-                                      ],
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.mail,
-                                            color: Color(0xffef2b39)),
-                                        SizedBox(
-                                          width: 10.0,
-                                        ),
-                                        Text(
-                                          ds["Email"],
-                                          style:
-                                              AppWidget.SimpleTextFeildStyle(),
-                                        )
-                                      ],
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Text(
-                                      ds["Status"] + "!",
-                                      style: TextStyle(
-                                          color: Color(0xffef2b39),
-                                          fontSize: 20.0,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                       SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    GestureDetector(
-                                      onTap: ()async{
-                                        await DatabaseMethods().updateAdminOrder(ds.id);
-                                        await DatabaseMethods().updateUserOrder(ds["Id"], ds.id);
-                                      },
-                                      child: Container(
-                                        width: 100,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            borderRadius:
-                                                BorderRadius.circular(10)),
-                                                                        child: Center(child: Text("Delivered", style: AppWidget.whiteTextFeildStyle(),)),  ),
-                                    ),
-                                     SizedBox(
-                                      height: 10.0,
-                                    ),
-                                  ],
+                                      ),
+                                      SizedBox(
+                                        height: 10.0,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),

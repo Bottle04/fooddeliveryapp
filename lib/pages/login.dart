@@ -4,6 +4,9 @@ import 'package:fooddeliveryapp/pages/signup.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
 import 'package:fooddeliveryapp/pages/forgot_password.dart';
 import 'package:fooddeliveryapp/pages/bottomnav.dart';
+import 'package:fooddeliveryapp/service/database.dart'; // Import DatabaseMethods
+import 'package:fooddeliveryapp/service/shared_pref.dart'; // Import SharedpreferenceHelper
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import cho Firestore
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -13,15 +16,44 @@ class LogIn extends StatefulWidget {
 }
 
 class _LogInState extends State<LogIn> {
-  String email = "", password = "", name = "";
-  TextEditingController namecontroller = new TextEditingController();
+  String email = "", password = "";
   TextEditingController passwordcontroller = new TextEditingController();
   TextEditingController mailcontroller = new TextEditingController();
 
   userLogin() async {
     try {
-      await FirebaseAuth.instance
+      // 1. Thực hiện đăng nhập Firebase
+      UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // 2. LẤY DỮ LIỆU TÊN TỪ FIRESTORE
+        DocumentSnapshot userSnapshot =
+            await DatabaseMethods().getUserDetails(user.uid);
+
+        String newName = "Guest User"; // Giá trị mặc định
+        String newEmail = user.email ?? email;
+
+        // KIỂM TRA: Nếu Document tồn tại và có field "Name"
+        if (userSnapshot.exists) {
+          Map<String, dynamic>? data =
+              userSnapshot.data() as Map<String, dynamic>?;
+
+          if (data != null && data.containsKey("Name")) {
+            newName = data["Name"]; // Lấy tên thật
+          }
+        }
+
+        // 3. LƯU DỮ LIỆU MỚI vào Shared Preference
+        await SharedpreferenceHelper().saveUserEmail(newEmail);
+        await SharedpreferenceHelper().saveUserName(newName);
+        await SharedpreferenceHelper().saveUserId(user.uid);
+      }
+
+      // 4. Chuyển hướng
+      // ignore: use_build_context_synchronously
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => BottomNav()));
     } on FirebaseAuthException catch (e) {
@@ -35,6 +67,12 @@ class _LogInState extends State<LogIn> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
           "Wrong Password Provided by User",
+          style: TextStyle(fontSize: 18.0, color: Colors.black),
+        )));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+          "Login failed: ${e.message}",
           style: TextStyle(fontSize: 18.0, color: Colors.black),
         )));
       }
@@ -94,8 +132,6 @@ class _LogInState extends State<LogIn> {
                     decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20)),
-                    // ĐÃ BỎ DÒNG height: MediaQuery.of(context).size.height / 1.65,
-                    // để chiều cao tự điều chỉnh theo nội dung
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -105,12 +141,10 @@ class _LogInState extends State<LogIn> {
                         Center(
                           child: Text(
                             "LogIn",
-                            // Sử dụng AppWidget.HeadlineTextFeildStyle()
                             style: TextStyle(
                                 fontSize: 30.0,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'Poppins'),
-                            // Vì không có file widget_support.dart nên dùng style mặc định để đảm bảo code chạy được
                           ),
                         ),
                         SizedBox(

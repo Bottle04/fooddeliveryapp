@@ -1,7 +1,8 @@
-// [TẠO FILE MỚI: Admin/manage_menu.dart]
+// file: manage_menu.dart
 
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/Admin/add_food.dart';
+import 'package:fooddeliveryapp/Admin/edit_food_list.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
 
 class ManageMenu extends StatefulWidget {
@@ -14,6 +15,9 @@ class ManageMenu extends StatefulWidget {
 class _ManageMenuState extends State<ManageMenu> {
   final List<String> categories = ['Pizza', 'Burger', 'Chinese', 'Mexican'];
 
+  // Biến trạng thái để kiểm soát việc hiển thị danh sách category
+  bool _isCategoryListVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,7 +27,7 @@ class _ManageMenuState extends State<ManageMenu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Manage Menu", style: AppWidget.HeadlineTextFeildStyle()),
+            Text("Manage Products", style: AppWidget.HeadlineTextFeildStyle()),
             SizedBox(height: 20.0),
 
             // Nút Quay lại
@@ -40,7 +44,7 @@ class _ManageMenuState extends State<ManageMenu> {
             ),
             SizedBox(height: 20.0),
 
-            // Nút Thêm sản phẩm mới (Điều hướng đến AddFood)
+            // 1. Nút Thêm sản phẩm mới (ADD NEW PRODUCT)
             GestureDetector(
               onTap: () {
                 Navigator.push(context,
@@ -53,39 +57,106 @@ class _ManageMenuState extends State<ManageMenu> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
-                  child: Text("ADD NEW PRODUCT",
+                  // Thêm '\n' và textAlign để đảm bảo cùng chiều cao với nút dưới
+                  child: Text("ADD NEW\nPRODUCT",
+                      textAlign: TextAlign.center,
                       style: AppWidget.boldwhiteTextFeildStyle()),
                 ),
               ),
             ),
 
             SizedBox(height: 30.0),
-            Text("Edit/Delete by Category:",
-                style: AppWidget.boldTextFeildStyle()),
+
+            // 2. Mục Edit/Delete by Category (Đã tối ưu để có cùng kích thước)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isCategoryListVisible = !_isCategoryListVisible;
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Color(0xffef2b39), // Màu đỏ nhất quán
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Thêm '\n' và textAlign để cân bằng chiều cao
+                      Text("EDIT/DELETE BY\nCATEGORY",
+                          textAlign: TextAlign.center,
+                          style: AppWidget.boldwhiteTextFeildStyle()),
+
+                      // Icon để báo hiệu trạng thái mở/đóng
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Icon(
+                            _isCategoryListVisible
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             SizedBox(height: 10.0),
 
-            // Danh sách các Category để xem/chỉnh sửa
+            // 3. Danh sách các Category (Chỉ hiển thị khi mở, đã làm nhỏ lại)
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFFececf8),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+              child: Visibility(
+                visible: _isCategoryListVisible,
                 child: ListView.builder(
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      leading:
-                          const Icon(Icons.folder, color: Color(0xffef2b39)),
-                      title: Text(categories[index],
-                          style: AppWidget.boldTextFeildStyle()),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 15.0),
-                      onTap: () {
-                        // TODO: Triển khai màn hình chỉnh sửa danh sách sản phẩm tại đây
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                                "Viewing products in ${categories[index]}. Implement EditFoodList here!")));
-                      },
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => EditFoodList(
+                                      category: categories[index])));
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 10), // Kích thước nhỏ hơn
+                          decoration: BoxDecoration(
+                            color: Color(0xffef2b39),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                categories[index],
+                                style: AppWidget.whiteTextFeildStyle(),
+                              ),
+                              Icon(Icons.arrow_forward_ios,
+                                  color: Colors.white, size: 20.0),
+                            ],
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

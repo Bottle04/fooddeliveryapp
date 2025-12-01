@@ -194,13 +194,13 @@ class _HomeAdminState extends State<HomeAdmin> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Image.asset(
-                                  "images/pan.png",
+                                  "images/product.jpg",
                                   height: 120,
                                   width: 120,
                                   fit: BoxFit.cover,
                                 ),
                                 Text(
-                                  "Manage\nMenu",
+                                  "Manage\nProducts",
                                   style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 25.0,
@@ -213,7 +213,7 @@ class _HomeAdminState extends State<HomeAdmin> {
                                         borderRadius:
                                             BorderRadius.circular(30)),
                                     child: Icon(
-                                      Icons.fastfood,
+                                      Icons.arrow_forward_ios,
                                       color: Colors.white,
                                       size: 30.0,
                                     ))

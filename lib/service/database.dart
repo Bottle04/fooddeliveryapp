@@ -1,3 +1,5 @@
+// file: database.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -7,6 +9,11 @@ class DatabaseMethods {
         .collection("users")
         .doc(id)
         .set(userInfoMap);
+  }
+
+  // HÀM MỚI: Lấy chi tiết người dùng theo ID (Cần cho Login và Profile)
+  Future<DocumentSnapshot> getUserDetails(String id) async {
+    return await FirebaseFirestore.instance.collection("users").doc(id).get();
   }
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> CODE MỚI <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -22,6 +29,14 @@ class DatabaseMethods {
   // HÀM LẤY SẢN PHẨM THEO CATEGORY (READ) - DÙNG TRONG home.dart
   Future<Stream<QuerySnapshot>> getFoodItems(String category) async {
     return FirebaseFirestore.instance.collection(category).snapshots();
+  }
+
+  // HÀM XÓA SẢN PHẨM (DELETE) - DÙNG TRONG edit_food_list.dart [MỚI]
+  Future deleteFoodItem(String category, String docId) async {
+    return await FirebaseFirestore.instance
+        .collection(category)
+        .doc(docId)
+        .delete();
   }
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END MỚI <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
