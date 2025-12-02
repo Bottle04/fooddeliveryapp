@@ -1,9 +1,10 @@
-// lib/Admin/edit_food_list.dart
+// file: edit_food_list.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:fooddeliveryapp/service/database.dart'; // Import đã được thêm
+import 'package:fooddeliveryapp/service/database.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
+import 'package:fooddeliveryapp/Admin/edit_food_details.dart';
 
 class EditFoodList extends StatefulWidget {
   final String category;
@@ -18,7 +19,6 @@ class _EditFoodListState extends State<EditFoodList> {
   Stream<QuerySnapshot>? foodStream;
 
   getOnTheLoad() async {
-    // Sử dụng DatabaseMethods để lấy danh sách món ăn theo Category
     foodStream = await DatabaseMethods().getFoodItems(widget.category);
     setState(() {});
   }
@@ -31,7 +31,6 @@ class _EditFoodListState extends State<EditFoodList> {
 
   // Hàm xóa sản phẩm
   Future<void> deleteFoodItem(String docId) async {
-    // Gọi hàm deleteFoodItem từ DatabaseMethods (đã thêm ở file database.dart)
     await DatabaseMethods().deleteFoodItem(widget.category, docId);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: Colors.red,
@@ -57,10 +56,18 @@ class _EditFoodListState extends State<EditFoodList> {
           itemCount: docs.length,
           itemBuilder: (context, index) {
             DocumentSnapshot ds = docs[index];
+
+            // Ép kiểu an toàn DocumentSnapshot sang Map
+            final data = ds.data() as Map<String, dynamic>?;
+
             String docId = ds.id;
-            String name = ds["Name"] ?? "No Name";
-            String price = ds["Price"] ?? "0";
-            String image = ds["Image"] ?? "";
+            // Lấy dữ liệu an toàn bằng cách kiểm tra key trong Map
+            String name = data?["Name"] ?? "No Name";
+            String price = data?["Price"] ?? "0";
+            String image = data?["Image"] ?? "";
+
+            // FIX LỖI: Lấy trường Detail an toàn (sử dụng data?[key] thay vì ds[key])
+            String detail = data?["Detail"] ?? "No details provided";
 
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -87,17 +94,26 @@ class _EditFoodListState extends State<EditFoodList> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Nút CHỈNH SỬA (TODO: Triển khai màn hình EditFoodDetails)
+                    // Nút CHỈNH SỬA
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
-                        // Implement navigation to EditFoodDetails here
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content:
-                                Text("Editing: $name. (Not yet implemented)")));
+                        // Điều hướng sang màn hình chỉnh sửa và truyền tất cả dữ liệu
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => EditFoodDetails(
+                                      docId: docId,
+                                      category: widget.category,
+                                      currentName: name,
+                                      currentPrice: price,
+                                      currentDetail:
+                                          detail, // Đã fix lấy giá trị an toàn
+                                      currentImage: image,
+                                    )));
                       },
                     ),
-                    // Nút XÓA (Đã triển khai logic)
+                    // Nút XÓA
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
