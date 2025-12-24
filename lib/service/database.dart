@@ -118,7 +118,7 @@ class DatabaseMethods {
   Future<Stream<QuerySnapshot>> getAdminOrders() async {
     return await FirebaseFirestore.instance
         .collection("Orders")
-        .where("Status", isEqualTo: "Pending")
+        .orderBy("OrderTime", descending: false)
         .snapshots();
   }
 

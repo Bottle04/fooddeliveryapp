@@ -14,7 +14,7 @@ class Order extends StatefulWidget {
 class _OrderState extends State<Order> {
   String? id;
   Stream<QuerySnapshot>? orderStream;
-  bool isLoading = true; // trạng thái loading
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -22,159 +22,114 @@ class _OrderState extends State<Order> {
     getOnTheLoad();
   }
 
-  Future<void> getSharedPref() async {
-    id = await SharedpreferenceHelper().getUserId();
-  }
-
   Future<void> getOnTheLoad() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    await getSharedPref();
-
+    id = await SharedpreferenceHelper().getUserId();
     if (id != null) {
       orderStream = await DatabaseMethods().getUserOrders(id!);
-    } else {
-      print("User ID is null! Cannot fetch orders.");
-      orderStream = null;
     }
-
     setState(() {
       isLoading = false;
     });
   }
 
   Widget allOrders() {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (orderStream == null) {
-      return const Center(child: Text("No orders found or user not logged in"));
-    }
-
     return StreamBuilder<QuerySnapshot>(
       stream: orderStream,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
-        }
-
         final docs = snapshot.data!.docs;
-
-        if (docs.isEmpty) {
-          return const Center(child: Text("No orders yet"));
-        }
+        if (docs.isEmpty) return const Center(child: Text("No orders yet"));
 
         return ListView.builder(
           padding: EdgeInsets.zero,
           itemCount: docs.length,
           itemBuilder: (context, index) {
             DocumentSnapshot ds = docs[index];
-            String foodImage = ds["FoodImage"] ?? ""; // Lấy URL ảnh
+            bool isAtRestaurant = ds["DeliveryType"] == "At Restaurant";
+
+            Timestamp? orderTimestamp = ds["OrderTime"] as Timestamp?;
+            String formattedTime = orderTimestamp != null
+                ? orderTimestamp.toDate().toString().split('.').first
+                : "N/A";
 
             return Container(
               margin:
                   const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: Material(
                 elevation: 3.0,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  topRight: Radius.circular(10),
-                ),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      topRight: Radius.circular(10),
-                    ),
-                  ),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10)),
                   child: Column(
                     children: [
-                      const SizedBox(height: 5.0),
-                      // Row Address
+                      // HIỂN THỊ THÔNG TIN ĐỊA ĐIỂM
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.start, // Căn lề trái
                         children: [
-                          const SizedBox(width: 10.0), // Padding trái
-                          const Icon(Icons.location_on_outlined,
-                              color: Color(0xffef2b39)),
+                          Icon(
+                              isAtRestaurant
+                                  ? Icons.restaurant
+                                  : Icons.location_on,
+                              color: const Color(0xffef2b39)),
                           const SizedBox(width: 10.0),
                           Flexible(
-                            // Bọc Text bằng Flexible để co giãn
                             child: Text(
-                              ds["Address"] ?? "",
+                              isAtRestaurant
+                                  ? "At Table: ${ds["TableNumber"]}"
+                                  : "Ship to: ${ds["Address"]}",
                               style: AppWidget.SimpleTextFeildStyle(),
-                              overflow: TextOverflow.ellipsis, // Thêm dấu ...
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 10.0), // Padding phải
                         ],
                       ),
+                      if (!isAtRestaurant && ds["ShippingFee"] != "0.0")
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 35.0),
+                            child: Text("Shipping Fee: \$${ds["ShippingFee"]}",
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.blue)),
+                          ),
+                        ),
                       const Divider(),
                       Row(
                         children: [
-                          // Ảnh món ăn (FIX LỖI: Image.network)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              foodImage, // Sử dụng URL mạng
-                              height: 120,
-                              width: 120,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback nếu URL Cloudinary bị lỗi
-                                return Image.asset(
-                                  "images/pan.png", // Dùng ảnh asset dự phòng
-                                  height: 120,
-                                  width: 120,
-                                  fit: BoxFit.cover,
-                                );
-                              },
-                            ),
+                            child: Image.network(ds["FoodImage"] ?? "",
+                                height: 80,
+                                width: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => Image.asset(
+                                    "images/pan.png",
+                                    height: 80,
+                                    width: 80)),
                           ),
-                          const SizedBox(width: 20.0),
-                          // Thông tin món ăn (FIX LỖI: Expanded/Flexible)
+                          const SizedBox(width: 15.0),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Tên món ăn (FIX LỖI TRÀN)
+                                Text(ds["FoodName"] ?? "",
+                                    style: AppWidget.boldTextFeildStyle(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
                                 Text(
-                                  ds["FoodName"] ?? "",
-                                  style: AppWidget.boldTextFeildStyle(),
-                                  maxLines: 2, // Giới hạn dòng
-                                  overflow: TextOverflow.ellipsis, // Dấu ...
-                                ),
-                                const SizedBox(height: 5.0),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.format_list_numbered,
-                                        color: Color(0xffef2b39)),
-                                    const SizedBox(width: 10.0),
-                                    Text(ds["Quantity"] ?? "0",
-                                        style: AppWidget.boldTextFeildStyle()),
-                                    const SizedBox(width: 30.0),
-                                    const Icon(Icons.monetization_on,
-                                        color: Color(0xffef2b39)),
-                                    const SizedBox(width: 10.0),
-                                    Text("\$${ds["Total"] ?? "0"}",
-                                        style: AppWidget.boldTextFeildStyle()),
-                                  ],
-                                ),
-                                const SizedBox(height: 5.0),
-                                Text(
-                                  "${ds["Status"] ?? ""}!",
-                                  style: const TextStyle(
-                                    color: Color(0xffef2b39),
-                                    fontSize: 20.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                    "Qty: ${ds["Quantity"]} | Total: \$${ds["Total"]}",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500)),
+                                Text("Time: $formattedTime",
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                                Text(ds["Status"] + "!",
+                                    style: const TextStyle(
+                                        color: Color(0xffef2b39),
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -194,38 +149,16 @@ class _OrderState extends State<Order> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        margin: const EdgeInsets.only(top: 40.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("Orders", style: AppWidget.HeadlineTextFeildStyle()),
-              ],
-            ),
-            const SizedBox(height: 10.0),
-            Expanded(
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFececf8),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20.0),
-                    Expanded(child: allOrders()),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: const Color(0xFFececf8),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text("My Orders", style: AppWidget.HeadlineTextFeildStyle()),
       ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : allOrders(),
     );
   }
 }

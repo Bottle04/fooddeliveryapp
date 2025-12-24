@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -20,40 +19,8 @@ class Wallet extends StatefulWidget {
 class _WalletState extends State<Wallet> {
   TextEditingController amountcontroller = TextEditingController();
   Map<String, dynamic>? paymentIntent;
-
   String? email, wallet = "0", id;
-
   Stream? walletStream;
-
-  // Lấy email + id
-  getthesharedpref() async {
-    email = await SharedpreferenceHelper().getUserEmail();
-    id = await SharedpreferenceHelper().getUserId();
-    setState(() {});
-  }
-
-  // Lấy số dư ví + giao dịch
-  getUserWallet() async {
-    await getthesharedpref();
-
-    // Stream giao dịch
-    walletStream = await DatabaseMethods().getUserTransactions(id!);
-
-    // Query ví user
-    QuerySnapshot querySnapshot =
-        await DatabaseMethods().getUserWalletbyemail(email!);
-
-    // Nếu chưa có ví → tạo ví mới
-    if (querySnapshot.docs.isEmpty) {
-      await DatabaseMethods().updateUserWallet("0", id!);
-      wallet = "0";
-    } else {
-      wallet = "${querySnapshot.docs.first["Wallet"]}";
-    }
-
-    print("WALLET = $wallet");
-    setState(() {});
-  }
 
   @override
   void initState() {
@@ -61,17 +28,43 @@ class _WalletState extends State<Wallet> {
     getUserWallet();
   }
 
-  // Hiển thị lịch sử giao dịch
+  // Lấy thông tin người dùng và số dư
+  getthesharedpref() async {
+    email = await SharedpreferenceHelper().getUserEmail();
+    id = await SharedpreferenceHelper().getUserId();
+    setState(() {});
+  }
+
+  getUserWallet() async {
+    await getthesharedpref();
+    if (id != null) {
+      walletStream = await DatabaseMethods().getUserTransactions(id!);
+    }
+
+    if (email != null) {
+      QuerySnapshot querySnapshot =
+          await DatabaseMethods().getUserWalletbyemail(email!);
+
+      if (querySnapshot.docs.isEmpty) {
+        await DatabaseMethods().updateUserWallet("0", id!);
+        wallet = "0";
+      } else {
+        wallet = "${querySnapshot.docs.first["Wallet"]}";
+      }
+    }
+    setState(() {});
+  }
+
+  // Giao diện Lịch sử giao dịch
   Widget allTransactions() {
     return StreamBuilder(
         stream: walletStream,
         builder: (context, AsyncSnapshot snapshot) {
           if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.data.docs.isEmpty) {
-            return Center(child: Text("No Transactions"));
+            return const Center(child: Text("No Transactions"));
           }
 
           return ListView.builder(
@@ -80,31 +73,27 @@ class _WalletState extends State<Wallet> {
               itemBuilder: (context, index) {
                 DocumentSnapshot ds = snapshot.data.docs[index];
                 return Container(
-                  padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.only(left: 20, right: 20, bottom: 20),
+                  padding: const EdgeInsets.all(10),
+                  margin:
+                      const EdgeInsets.only(left: 20, right: 20, bottom: 20),
                   decoration: BoxDecoration(
-                      color: Color(0xFFececf8),
+                      color: const Color(0xFFececf8),
                       borderRadius: BorderRadius.circular(10)),
                   child: Row(
                     children: [
-                      // Hiển thị Ngày
-                      Text(
-                        ds["Date"],
-                        style: AppWidget.HeadlineTextFeildStyle(),
-                      ),
-                      SizedBox(width: 20),
-
-                      // [FIX LỖI]: Bọc Column bằng Expanded để tránh tràn ngang
+                      Text(ds["Date"],
+                          style: AppWidget.HeadlineTextFeildStyle()),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Amount added to wallet"),
+                            const Text("Amount added to wallet"),
                             Text(
                               "\$${ds["Amount"]}",
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Color(0xffef2b39),
-                                  fontSize: 22, // Giảm từ 25 xuống 22
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold),
                             )
                           ],
@@ -121,32 +110,32 @@ class _WalletState extends State<Wallet> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: wallet == null
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Container(
-              margin: EdgeInsets.only(top: 40),
+              margin: const EdgeInsets.only(top: 40),
               child: Column(
                 children: [
                   Center(
                     child: Text("Wallet",
                         style: AppWidget.HeadlineTextFeildStyle()),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Expanded(
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                           color: Color(0xFFececf8),
                           borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(30),
                               topRight: Radius.circular(30))),
                       child: Column(
                         children: [
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           walletBox(),
-                          SizedBox(height: 40),
+                          const SizedBox(height: 40),
                           quickAddButtons(),
-                          SizedBox(height: 30),
+                          const SizedBox(height: 30),
                           addMoneyButton(),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           Expanded(child: historyBox())
                         ],
                       ),
@@ -158,28 +147,29 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  // --- UI: Ví
   Widget walletBox() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Material(
         elevation: 3,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
               color: Colors.white, borderRadius: BorderRadius.circular(10)),
           child: Row(
             children: [
               Image.asset("images/wallet.png", height: 80, width: 80),
-              SizedBox(width: 50),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Your Wallet", style: AppWidget.boldTextFeildStyle()),
-                  Text("\$${wallet!}",
-                      style: AppWidget.HeadlineTextFeildStyle())
-                ],
+              const SizedBox(width: 40),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Your Wallet", style: AppWidget.boldTextFeildStyle()),
+                    Text("\$${wallet!}",
+                        style: AppWidget.HeadlineTextFeildStyle())
+                  ],
+                ),
               ),
             ],
           ),
@@ -188,7 +178,6 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  // --- UI: Nút nạp nhanh
   Widget quickAddButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -216,15 +205,15 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  // --- UI: Add Money
   Widget addMoneyButton() {
     return GestureDetector(
       onTap: () => openBox(),
       child: Container(
         height: 50,
-        margin: EdgeInsets.symmetric(horizontal: 20),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-            color: Color(0xffef2b39), borderRadius: BorderRadius.circular(10)),
+            color: const Color(0xffef2b39),
+            borderRadius: BorderRadius.circular(10)),
         child: Center(
           child: Text("Add Money", style: AppWidget.boldwhiteTextFeildStyle()),
         ),
@@ -232,25 +221,24 @@ class _WalletState extends State<Wallet> {
     );
   }
 
-  // --- UI: Lịch sử giao dịch
   Widget historyBox() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30), topRight: Radius.circular(30))),
       child: Column(
         children: [
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text("Your Transactions", style: AppWidget.boldTextFeildStyle()),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Expanded(child: allTransactions())
         ],
       ),
     );
   }
 
-  // ----------------- PAYMENT -------------------
+  // ----------------- XỬ LÝ THANH TOÁN STRIPE -------------------
 
   Future<void> makePayment(String amount) async {
     try {
@@ -264,7 +252,7 @@ class _WalletState extends State<Wallet> {
 
       displayPaymentSheet(amount);
     } catch (e) {
-      print("Error makePayment: $e");
+      debugPrint("Error makePayment: $e");
     }
   }
 
@@ -272,20 +260,27 @@ class _WalletState extends State<Wallet> {
     try {
       await Stripe.instance.presentPaymentSheet();
 
-      int updatedwallet = int.parse(wallet!) + int.parse(amount);
+      // SỬA LỖI: Tính toán số dư mới an toàn
+      int currentBalance = int.tryParse(wallet ?? "0") ?? 0;
+      int addAmount = int.tryParse(amount) ?? 0;
+      int newBalance = currentBalance + addAmount;
 
-      await DatabaseMethods().updateUserWallet(updatedwallet.toString(), id!);
-      await getUserWallet();
+      // Cập nhật database
+      await DatabaseMethods().updateUserWallet(newBalance.toString(), id!);
 
-      DateTime now = DateTime.now();
-      String formattedDate = DateFormat("dd MMM").format(now);
-
+      // Lưu giao dịch
+      String formattedDate = DateFormat("dd MMM").format(DateTime.now());
       await DatabaseMethods()
           .addUserTransaction({"Amount": amount, "Date": formattedDate}, id!);
 
+      // Cập nhật giao diện ngay lập tức
+      setState(() {
+        wallet = newBalance.toString();
+      });
+
       showDialog(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (_) => const AlertDialog(
                 content: Row(
                   children: [
                     Icon(Icons.check_circle, color: Colors.green),
@@ -299,14 +294,15 @@ class _WalletState extends State<Wallet> {
     } catch (e) {
       showDialog(
           context: context,
-          builder: (_) => AlertDialog(content: Text("Payment Cancelled")));
+          builder: (_) =>
+              const AlertDialog(content: Text("Payment Cancelled")));
     }
   }
 
   createPaymentIntent(String amount, String currency) async {
     try {
       Map<String, dynamic> body = {
-        'amount': calculateAmount(amount),
+        'amount': (int.parse(amount) * 100).toString(),
         'currency': currency,
         'payment_method_types[]': 'card'
       };
@@ -319,18 +315,12 @@ class _WalletState extends State<Wallet> {
         },
         body: body,
       );
-
       return jsonDecode(response.body);
     } catch (err) {
-      print("err charging user: $err");
+      debugPrint("err charging user: $err");
     }
   }
 
-  calculateAmount(String amount) {
-    return (int.parse(amount) * 100).toString();
-  }
-
-  // Popup nhập số tiền
   Future openBox() => showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -341,43 +331,45 @@ class _WalletState extends State<Wallet> {
                     children: [
                       GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: Icon(Icons.cancel)),
-                      SizedBox(width: 30),
-                      Text("Add amount",
+                          child: const Icon(Icons.cancel)),
+                      const SizedBox(width: 30),
+                      const Text("Add amount",
                           style: TextStyle(
                               color: Color(0xff008080),
                               fontWeight: FontWeight.bold,
                               fontSize: 18)),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  Text("Enter Amount"),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 20),
+                  const Text("Enter Amount"),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                         border: Border.all(color: Colors.black38, width: 2),
                         borderRadius: BorderRadius.circular(10)),
                     child: TextField(
                       controller: amountcontroller,
                       keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                           border: InputBorder.none, hintText: "Amount"),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      makePayment(amountcontroller.text);
+                      if (amountcontroller.text.isNotEmpty) {
+                        makePayment(amountcontroller.text);
+                      }
                     },
                     child: Container(
                       width: 100,
-                      padding: EdgeInsets.all(5),
+                      padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
-                          color: Color(0xFF008080),
+                          color: const Color(0xFF008080),
                           borderRadius: BorderRadius.circular(10)),
-                      child: Center(
+                      child: const Center(
                         child: Text("Add",
                             style: TextStyle(
                                 color: Colors.white,

@@ -285,7 +285,7 @@ class _LogInState extends State<LogIn> {
                                 ))
                           ],
                         ),
-                        SizedBox(height: 20.0), // Thêm khoảng trống cuối cùng
+                        SizedBox(height: 20.0),
                       ],
                     ),
                   ),
