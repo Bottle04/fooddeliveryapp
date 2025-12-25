@@ -1,7 +1,6 @@
 // file: database.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class DatabaseMethods {
   // === USER MANAGEMENT ===
@@ -14,17 +13,17 @@ class DatabaseMethods {
         .set(userInfoMap);
   }
 
-  // READ: Lấy chi tiết người dùng theo ID (Cần cho Login và Profile)
+  // READ: Lấy chi tiết người dùng theo ID
   Future<DocumentSnapshot> getUserDetails(String id) async {
     return await FirebaseFirestore.instance.collection("users").doc(id).get();
   }
 
-  // READ: Lấy tất cả người dùng (Dùng cho Admin)
+  // READ: Lấy tất cả người dùng (Admin)
   Future<Stream<QuerySnapshot>> getAllUsers() async {
-    return await FirebaseFirestore.instance.collection("users").snapshots();
+    return FirebaseFirestore.instance.collection("users").snapshots();
   }
 
-  // DELETE: Xóa người dùng theo ID
+  // DELETE: Xóa người dùng
   Future deleteUser(String id) async {
     return await FirebaseFirestore.instance
         .collection("users")
@@ -42,12 +41,12 @@ class DatabaseMethods {
         .set(foodInfoMap);
   }
 
-  // READ: Lấy danh sách sản phẩm theo Category (Dùng cho Home/Edit)
+  // READ: Lấy danh sách sản phẩm theo Category
   Future<Stream<QuerySnapshot>> getFoodItems(String category) async {
     return FirebaseFirestore.instance.collection(category).snapshots();
   }
 
-  // UPDATE: Cập nhật chi tiết món ăn (Cần cho chức năng Chỉnh sửa)
+  // UPDATE: Cập nhật chi tiết món ăn
   Future updateFoodItem(
       String category, String docId, Map<String, dynamic> updatedMap) async {
     return await FirebaseFirestore.instance
@@ -64,8 +63,10 @@ class DatabaseMethods {
         .delete();
   }
 
-  // READ: Tìm kiếm món ăn theo chữ cái đầu
+  // READ: Tìm kiếm món ăn
   Future<QuerySnapshot> search(String updatedname) async {
+    // Lưu ý: Để tìm kiếm hiệu quả, bạn nên có một collection "Food" chứa tất cả món ăn
+    // hoặc tìm kiếm trong từng category riêng biệt.
     return await FirebaseFirestore.instance
         .collection("Food")
         .where("SearchKey",
@@ -73,9 +74,40 @@ class DatabaseMethods {
         .get();
   }
 
+  // === RATING MANAGEMENT (MỚI THÊM) ===
+
+  // Hàm tính toán và cập nhật điểm đánh giá
+  Future addFoodRating(String category, String foodId, double rating) async {
+    DocumentReference foodRef =
+        FirebaseFirestore.instance.collection(category).doc(foodId);
+
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(foodRef);
+      if (!snapshot.exists) return;
+
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+
+      // Lấy dữ liệu cũ (nếu chưa có thì mặc định là 0)
+      double currentTotalRating = (data["TotalRating"] ?? 0.0).toDouble();
+      int currentRatingCount = (data["RatingCount"] ?? 0).toInt();
+
+      // Tính toán số liệu mới
+      int newCount = currentRatingCount + 1;
+      double newTotal = currentTotalRating + rating;
+      double averageRating = newTotal / newCount;
+
+      // Cập nhật lại vào Firestore
+      transaction.update(foodRef, {
+        "TotalRating": newTotal,
+        "RatingCount": newCount,
+        "AverageRating": averageRating,
+      });
+    });
+  }
+
   // === ORDER MANAGEMENT ===
 
-  // CREATE: Thêm đơn hàng vào collection của người dùng
+  // CREATE: Thêm đơn hàng User
   Future addUserOrderDetails(
       Map<String, dynamic> userOrderMap, String id, String orderid) async {
     return await FirebaseFirestore.instance
@@ -86,16 +118,16 @@ class DatabaseMethods {
         .set(userOrderMap);
   }
 
-  // READ: Lấy danh sách đơn hàng của người dùng
+  // READ: Lấy đơn hàng User
   Future<Stream<QuerySnapshot>> getUserOrders(String id) async {
-    return await FirebaseFirestore.instance
+    return FirebaseFirestore.instance
         .collection("users")
         .doc(id)
         .collection("Orders")
         .snapshots();
   }
 
-  // UPDATE: Cập nhật trạng thái đơn hàng của người dùng
+  // UPDATE: Cập nhật trạng thái đơn hàng User
   Future updateUserOrder(String userid, String docid) async {
     return await FirebaseFirestore.instance
         .collection("users")
@@ -105,7 +137,7 @@ class DatabaseMethods {
         .update({"Status": "Delivered"});
   }
 
-  // CREATE: Thêm đơn hàng vào collection chung cho Admin
+  // CREATE: Thêm đơn hàng Admin
   Future addAdminOrderDetails(
       Map<String, dynamic> userOrderMap, String orderid) async {
     return await FirebaseFirestore.instance
@@ -114,15 +146,15 @@ class DatabaseMethods {
         .set(userOrderMap);
   }
 
-  // READ: Lấy danh sách đơn hàng cho Admin (chỉ lấy đơn "Pending")
+  // READ: Lấy đơn hàng Admin
   Future<Stream<QuerySnapshot>> getAdminOrders() async {
-    return await FirebaseFirestore.instance
+    return FirebaseFirestore.instance
         .collection("Orders")
         .orderBy("OrderTime", descending: false)
         .snapshots();
   }
 
-  // UPDATE: Cập nhật trạng thái đơn hàng cho Admin
+  // UPDATE: Cập nhật trạng thái đơn hàng Admin
   Future updateAdminOrder(String id) async {
     return await FirebaseFirestore.instance
         .collection("Orders")
@@ -130,9 +162,8 @@ class DatabaseMethods {
         .update({"Status": "Delivered"});
   }
 
-  // === WALLET/TRANSACTION MANAGEMENT ===
+  // === WALLET MANAGEMENT ===
 
-  // READ: Lấy thông tin ví dựa trên email
   Future<QuerySnapshot> getUserWalletbyemail(String email) async {
     return await FirebaseFirestore.instance
         .collection("users")
@@ -140,7 +171,6 @@ class DatabaseMethods {
         .get();
   }
 
-  // UPDATE: Cập nhật số dư ví
   Future updateUserWallet(String amount, String id) async {
     return await FirebaseFirestore.instance
         .collection("users")
@@ -148,7 +178,6 @@ class DatabaseMethods {
         .update({"Wallet": amount});
   }
 
-  // CREATE: Thêm giao dịch mới
   Future addUserTransaction(
       Map<String, dynamic> userOrderMap, String id) async {
     return await FirebaseFirestore.instance
@@ -158,9 +187,8 @@ class DatabaseMethods {
         .add(userOrderMap);
   }
 
-  // READ: Lấy danh sách giao dịch của người dùng
   Future<Stream<QuerySnapshot>> getUserTransactions(String id) async {
-    return await FirebaseFirestore.instance
+    return FirebaseFirestore.instance
         .collection("users")
         .doc(id)
         .collection("Transaction")

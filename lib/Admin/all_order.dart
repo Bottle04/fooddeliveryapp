@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/service/database.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
+import 'package:audioplayers/audioplayers.dart'; // Thư viện âm thanh
 
 class AllOrders extends StatefulWidget {
   const AllOrders({super.key});
@@ -12,6 +13,8 @@ class AllOrders extends StatefulWidget {
 
 class _AllOrdersState extends State<AllOrders> {
   Stream? orderStream;
+  int _currentOrderCount = 0; // Lưu số lượng đơn hàng hiện tại
+  final AudioPlayer _audioPlayer = AudioPlayer(); // Khởi tạo trình phát nhạc
 
   getontheload() async {
     orderStream = await DatabaseMethods().getAdminOrders();
@@ -24,6 +27,22 @@ class _AllOrdersState extends State<AllOrders> {
     getontheload();
   }
 
+  // Hàm phát chuông báo khi có đơn hàng mới
+  Future<void> _playNotificationSound() async {
+    try {
+      // Lưu ý: file mp3 phải nằm trong assets và đã khai báo trong pubspec.yaml
+      await _audioPlayer.play(AssetSource('notification.mp3'));
+    } catch (e) {
+      print("Lỗi phát âm thanh: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Giải phóng bộ nhớ
+    super.dispose();
+  }
+
   Widget allOrders() {
     return StreamBuilder(
         stream: orderStream,
@@ -31,6 +50,24 @@ class _AllOrdersState extends State<AllOrders> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          // logic THÔNG BÁO ĐƠN HÀNG MỚI
+          int newCount = snapshot.data.docs.length;
+
+          // Nếu đây không phải lần đầu load trang và số đơn hàng tăng lên
+          if (_currentOrderCount != 0 && newCount > _currentOrderCount) {
+            _playNotificationSound(); // Phát chuông báo
+
+            // Hiển thị thông báo nổi (SnackBar)
+            Future.delayed(Duration.zero, () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text("🔔 Bạn có đơn hàng mới!"),
+                backgroundColor: Colors.blue,
+                duration: Duration(seconds: 4),
+              ));
+            });
+          }
+          _currentOrderCount = newCount; // Cập nhật số lượng mới
 
           return ListView.builder(
               padding: EdgeInsets.zero,
@@ -153,7 +190,7 @@ class _AllOrdersState extends State<AllOrders> {
                                       "Qty: ${data["Quantity"]} | Total: \$${data["Total"]}",
                                       style: AppWidget.SimpleTextFeildStyle()),
 
-                                  // --- PHẦN CẬP NHẬT: HIỂN THỊ GHI CHÚ ---
+                                  // HIỂN THỊ GHI CHÚ TỪ KHÁCH HÀNG
                                   if (data.containsKey("Note") &&
                                       data["Note"].toString().isNotEmpty)
                                     Padding(
@@ -178,7 +215,6 @@ class _AllOrdersState extends State<AllOrders> {
                                         ),
                                       ),
                                     ),
-                                  // ---------------------------------------
 
                                   const SizedBox(height: 5.0),
                                   Row(
@@ -242,8 +278,8 @@ class _AllOrdersState extends State<AllOrders> {
                                       children: [
                                         Icon(Icons.check_circle,
                                             color: Colors.green, size: 20),
-                                        const SizedBox(width: 5),
-                                        const Text("Completed",
+                                        SizedBox(width: 5),
+                                        Text("Completed",
                                             style: TextStyle(
                                                 color: Colors.green,
                                                 fontWeight: FontWeight.bold)),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/pages/signup.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
+import 'package:fooddeliveryapp/pages/role_selection.dart';
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});
@@ -48,7 +49,9 @@ class _OnboardingState extends State<Onboarding> {
             GestureDetector(
               onTap: () {
                 Navigator.push(
-                    context, MaterialPageRoute(builder: (context) => SignUp()));
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => RoleSelectionScreen()));
               },
               child: Container(
                 height: 60,

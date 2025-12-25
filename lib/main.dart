@@ -1,20 +1,18 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:fooddeliveryapp/pages/bottomnav.dart';
-import 'package:fooddeliveryapp/pages/login.dart';
+import 'package:fooddeliveryapp/pages/onboarding.dart'; // Đảm bảo trang Onboarding nằm trong thư mục pages
+import 'package:fooddeliveryapp/pages/role_selection.dart'; // Đã cập nhật theo tên file bạn cung cấp
 import 'package:fooddeliveryapp/service/constant.dart';
-import 'package:fooddeliveryapp/Admin/admin_login.dart';
-import 'package:fooddeliveryapp/pages/role_selection.dart'; // chứa Stripe publishable key
 
 void main() async {
+  // Đảm bảo các dịch vụ hệ thống được khởi tạo
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi tạo Stripe
+  // 1. Khởi tạo Stripe (Key từ file constant.dart)
   Stripe.publishableKey = publishedkey;
 
-  // Khởi tạo Firebase
+  // 2. Khởi tạo Firebase
   await Firebase.initializeApp();
 
   runApp(const MyApp());
@@ -23,23 +21,24 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // Hàm check trạng thái đăng nhập
-  Future<bool> checkLoginStatus() async {
-    // Lấy user hiện tại từ FirebaseAuth
-    final user = FirebaseAuth.instance.currentUser;
-    return user != null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Food Delivery App',
+      title: 'FoodGo Delivery',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        // Màu chủ đạo đỏ cam đồng bộ với nhận diện thương hiệu FoodGo
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffef2b39)),
         useMaterial3: true,
       ),
-      home: const RoleSelectionScreen(), 
+
+      // THAY ĐỔI: Trang đầu tiên hiển thị khi mở app là Onboarding
+      home: const Onboarding(),
+
+      // Đăng ký Route cho trang RoleSelectionScreen để dễ dàng điều hướng
+      routes: {
+        '/role_selection': (context) => const RoleSelectionScreen(),
+      },
     );
   }
 }

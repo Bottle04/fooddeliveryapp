@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/service/database.dart';
@@ -13,13 +12,20 @@ class DetailPage extends StatefulWidget {
   final String name;
   final String price;
   final String description;
+  // THÊM 2 BIẾN NÀY ĐỂ NHẬN DỮ LIỆU TỪ TRANG HOME
+  final String id;
+  final String category;
 
-  const DetailPage(
-      {super.key,
-      required this.image,
-      required this.name,
-      required this.price,
-      required this.description});
+  const DetailPage({
+    super.key,
+    required this.image,
+    required this.name,
+    required this.price,
+    required this.description,
+    // THÊM VÀO CONSTRUCTOR
+    required this.id,
+    required this.category,
+  });
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -27,7 +33,6 @@ class DetailPage extends StatefulWidget {
 
 class _DetailPageState extends State<DetailPage> {
   TextEditingController addresscontroller = TextEditingController();
-  // 1. Khai báo Controller cho phần Ghi chú
   TextEditingController noteController = TextEditingController();
 
   String? name, id, email, address, wallet;
@@ -129,8 +134,6 @@ class _DetailPageState extends State<DetailPage> {
               Text(widget.description,
                   style:
                       const TextStyle(color: Colors.black54, fontSize: 15.0)),
-
-              // 2. GIAO DIỆN PHẦN GHI CHÚ
               const SizedBox(height: 20.0),
               Text("Special Instructions",
                   style: AppWidget.SimpleTextFeildStyle()),
@@ -151,7 +154,6 @@ class _DetailPageState extends State<DetailPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 30.0),
               Text("Quantity", style: AppWidget.SimpleTextFeildStyle()),
               const SizedBox(height: 10.0),
@@ -241,7 +243,7 @@ class _DetailPageState extends State<DetailPage> {
 
                             String orderId = randomAlphaNumeric(10);
 
-                            // 3. LƯU TRƯỜNG NOTE VÀO FIREBASE
+                            // --- CẬP NHẬT MAP ĐỂ LƯU CATEGORY VÀ FOODID ---
                             Map<String, dynamic> userOrderMap = {
                               "Name": name,
                               "Id": id,
@@ -254,8 +256,7 @@ class _DetailPageState extends State<DetailPage> {
                               "Status": "Pending",
                               "OrderTime": FieldValue.serverTimestamp(),
                               "DeliveryType": deliveryType,
-                              "Note": noteController
-                                  .text, // <--- Lưu ghi chú tại đây
+                              "Note": noteController.text,
                               "TableNumber": deliveryType == "At Restaurant"
                                   ? selectedTable
                                   : "N/A",
@@ -263,7 +264,12 @@ class _DetailPageState extends State<DetailPage> {
                                   ? addresscontroller.text
                                   : "18 Phan Tứ, Đà Nẵng",
                               "ShippingFee": shippingFee.toStringAsFixed(1),
+
+                              // QUAN TRỌNG: Lưu 2 trường này để đánh giá được
+                              "FoodId": widget.id,
+                              "Category": widget.category,
                             };
+                            // -----------------------------------------------
 
                             await DatabaseMethods().addUserOrderDetails(
                                 userOrderMap, id!, orderId);
@@ -307,6 +313,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
+  // Giữ nguyên phần openBox...
   Future<bool?> openBox() => showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
