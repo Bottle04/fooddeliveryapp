@@ -51,7 +51,7 @@ class RoleSelectionScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
                 Text(
-                  "Bạn là ai?",
+                  "Who are you ?",
                   style: AppWidget.HeadlineTextFeildStyle(),
                 ),
                 const SizedBox(height: 30),

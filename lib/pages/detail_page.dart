@@ -6,13 +6,13 @@ import 'package:fooddeliveryapp/service/widget_support.dart';
 import 'package:random_string/random_string.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart'; // Import thư viện format ngày giờ
 
 class DetailPage extends StatefulWidget {
   final String image;
   final String name;
   final String price;
   final String description;
-  // THÊM 2 BIẾN NÀY ĐỂ NHẬN DỮ LIỆU TỪ TRANG HOME
   final String id;
   final String category;
 
@@ -22,7 +22,6 @@ class DetailPage extends StatefulWidget {
     required this.name,
     required this.price,
     required this.description,
-    // THÊM VÀO CONSTRUCTOR
     required this.id,
     required this.category,
   });
@@ -103,6 +102,7 @@ class _DetailPageState extends State<DetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Biến hiển thị tổng tiền tạm tính (cho UI)
     double finalTotal = totalprice.toDouble() + shippingFee;
 
     return Scaffold(
@@ -220,6 +220,10 @@ class _DetailPageState extends State<DetailPage> {
                         bool? isConfirm = await openBox();
 
                         if (isConfirm == true) {
+                          // Tính toán lại tổng tiền thực tế (bao gồm phí ship nếu có)
+                          double realTotal =
+                              totalprice.toDouble() + shippingFee;
+
                           if (deliveryType == "At Restaurant" &&
                               selectedTable == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -236,19 +240,32 @@ class _DetailPageState extends State<DetailPage> {
                           }
 
                           double userWallet = double.parse(wallet ?? "0");
-                          if (userWallet >= finalTotal) {
-                            double updatedwallet = userWallet - finalTotal;
+
+                          // Kiểm tra số dư ví
+                          if (userWallet >= realTotal) {
+                            // 1. Cập nhật số dư ví mới
+                            double updatedwallet = userWallet - realTotal;
                             await DatabaseMethods().updateUserWallet(
                                 updatedwallet.toStringAsFixed(1), id!);
 
-                            String orderId = randomAlphaNumeric(10);
+                            // 2. GHI LỊCH SỬ GIAO DỊCH (LOẠI TRỪ TIỀN - DEBIT)
+                            String date = DateFormat("yyyy-MM-dd HH:mm:ss")
+                                .format(DateTime.now());
+                            Map<String, dynamic> transactionMap = {
+                              "Amount": realTotal.toStringAsFixed(1),
+                              "Date": date,
+                              "Type": "Debit" // Đánh dấu là chi tiêu
+                            };
+                            await DatabaseMethods()
+                                .addUserTransaction(transactionMap, id!);
 
-                            // --- CẬP NHẬT MAP ĐỂ LƯU CATEGORY VÀ FOODID ---
+                            // 3. Tạo đơn hàng
+                            String orderId = randomAlphaNumeric(10);
                             Map<String, dynamic> userOrderMap = {
                               "Name": name,
                               "Id": id,
                               "Quantity": quantity.toString(),
-                              "Total": finalTotal.toStringAsFixed(1),
+                              "Total": realTotal.toStringAsFixed(1),
                               "Email": email,
                               "FoodName": widget.name,
                               "FoodImage": widget.image,
@@ -264,12 +281,9 @@ class _DetailPageState extends State<DetailPage> {
                                   ? addresscontroller.text
                                   : "18 Phan Tứ, Đà Nẵng",
                               "ShippingFee": shippingFee.toStringAsFixed(1),
-
-                              // QUAN TRỌNG: Lưu 2 trường này để đánh giá được
                               "FoodId": widget.id,
                               "Category": widget.category,
                             };
-                            // -----------------------------------------------
 
                             await DatabaseMethods().addUserOrderDetails(
                                 userOrderMap, id!, orderId);
@@ -313,7 +327,6 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  // Giữ nguyên phần openBox...
   Future<bool?> openBox() => showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(

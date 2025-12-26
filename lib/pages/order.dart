@@ -43,17 +43,27 @@ class _OrderState extends State<Order> {
       builder: (context) => AlertDialog(
         title: Text("Rate $foodName"),
         content: StatefulBuilder(
-          builder: (context, setState) => Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              return IconButton(
-                icon: Icon(
-                  index < selectedRating ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                ),
-                onPressed: () => setState(() => selectedRating = index + 1.0),
-              );
-            }),
+          builder: (context, setState) => SizedBox(
+            // Giới hạn chiều rộng
+            width: double.maxFinite,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return Padding(
+                  padding: const EdgeInsets.all(2.0), // Tạo khoảng cách nhỏ
+                  child: GestureDetector(
+                    // Dùng GestureDetector thay IconButton để kiểm soát kích thước tốt hơn
+                    onTap: () => setState(() => selectedRating = index + 1.0),
+                    child: Icon(
+                      index < selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size:
+                          32, // Giảm kích thước icon xuống một chút (mặc định là 24, nhưng IconButton làm nó to ra)
+                    ),
+                  ),
+                );
+              }),
+            ),
           ),
         ),
         actions: [

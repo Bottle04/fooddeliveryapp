@@ -55,6 +55,7 @@ class _WalletState extends State<Wallet> {
     setState(() {});
   }
 
+  // --- 1. CẬP NHẬT LOGIC HIỂN THỊ VÀ SẮP XẾP ---
   Widget allTransactions() {
     return StreamBuilder(
       stream: walletStream,
@@ -67,11 +68,27 @@ class _WalletState extends State<Wallet> {
           return const Center(child: Text("No Transactions"));
         }
 
+        // Lấy danh sách document từ snapshot
+        List<DocumentSnapshot> docs = snapshot.data.docs;
+
+        // Sắp xếp: Mới nhất lên đầu (Giảm dần theo chuỗi Date)
+        // Vì định dạng là "yyyy-MM-dd HH:mm:ss" nên sort string là chính xác
+        docs.sort((a, b) {
+          String dateA = (a.data() as Map<String, dynamic>)["Date"] ?? "";
+          String dateB = (b.data() as Map<String, dynamic>)["Date"] ?? "";
+          return dateB.compareTo(dateA); 
+        });
+
         return ListView.builder(
           padding: EdgeInsets.zero,
-          itemCount: snapshot.data.docs.length,
+          itemCount: docs.length,
           itemBuilder: (context, index) {
-            DocumentSnapshot ds = snapshot.data.docs[index];
+            DocumentSnapshot ds = docs[index];
+            Map<String, dynamic> data = ds.data() as Map<String, dynamic>;
+
+            // Kiểm tra loại giao dịch
+            bool isDebit = data.containsKey("Type") && data["Type"] == "Debit";
+
             return Container(
               padding: const EdgeInsets.all(10),
               margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -81,22 +98,33 @@ class _WalletState extends State<Wallet> {
               ),
               child: Row(
                 children: [
-                  Text(ds["Date"], style: AppWidget.HeadlineTextFeildStyle()),
-                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Amount added to wallet"),
                         Text(
-                          "\$${ds["Amount"]}",
-                          style: const TextStyle(
-                              color: Color(0xffef2b39),
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold),
-                        )
+                          isDebit ? "Payment for Food" : "Added to Wallet",
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF273c75)),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          data["Date"] ?? "N/A", // Hiển thị đầy đủ ngày giờ
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    (isDebit ? "-" : "+") + "\$${data["Amount"]}",
+                    style: TextStyle(
+                        color: isDebit ? Colors.red : Colors.green,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
                   )
                 ],
               ),
@@ -116,13 +144,12 @@ class _WalletState extends State<Wallet> {
               margin: const EdgeInsets.only(top: 40),
               child: Column(
                 children: [
-                  /// 🔙 HEADER WITH BACK BUTTON
                   Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
-                          Navigator.pop(context); // Thoát về màn hình chính
+                          Navigator.pop(context);
                         },
                       ),
                       Expanded(
@@ -135,9 +162,7 @@ class _WalletState extends State<Wallet> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 10),
-
                   Expanded(
                     child: Container(
                       decoration: const BoxDecoration(
@@ -289,33 +314,43 @@ class _WalletState extends State<Wallet> {
     try {
       await Stripe.instance.presentPaymentSheet();
 
-      int currentBalance = int.tryParse(wallet ?? "0") ?? 0;
-      int addAmount = int.tryParse(amount) ?? 0;
-      int newBalance = currentBalance + addAmount;
+      if (id != null) {
+        DocumentSnapshot userDoc = await DatabaseMethods().getUserDetails(id!);
+        double currentBalance = double.parse(userDoc["Wallet"].toString());
+        double addAmount = double.parse(amount);
+        double newBalance = currentBalance + addAmount;
 
-      await DatabaseMethods().updateUserWallet(newBalance.toString(), id!);
+        await DatabaseMethods().updateUserWallet(newBalance.toString(), id!);
 
-      String date = DateFormat("dd MMM").format(DateTime.now());
-      await DatabaseMethods()
-          .addUserTransaction({"Amount": amount, "Date": date}, id!);
+        // --- 2. CẬP NHẬT ĐỊNH DẠNG NGÀY GIỜ ---
+        // Sử dụng định dạng chuẩn để dễ sắp xếp: yyyy-MM-dd HH:mm:ss
+        String date = DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
+        
+        await DatabaseMethods().addUserTransaction({
+          "Amount": amount,
+          "Date": date,
+          "Type": "Credit"
+        }, id!);
 
-      setState(() {
-        wallet = newBalance.toString();
-      });
+        setState(() {
+          wallet = newBalance.toString();
+        });
 
-      showDialog(
-        context: context,
-        builder: (_) => const AlertDialog(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 10),
-              Text("Payment Successful"),
-            ],
+        showDialog(
+          context: context,
+          builder: (_) => const AlertDialog(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 10),
+                Text("Payment Successful"),
+              ],
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
+      print("Error: $e");
       showDialog(
         context: context,
         builder: (_) => const AlertDialog(content: Text("Payment Cancelled")),
@@ -326,7 +361,7 @@ class _WalletState extends State<Wallet> {
   createPaymentIntent(String amount, String currency) async {
     try {
       Map<String, dynamic> body = {
-        'amount': (int.parse(amount) * 100).toString(),
+        'amount': (double.parse(amount) * 100).toInt().toString(),
         'currency': currency,
         'payment_method_types[]': 'card'
       };

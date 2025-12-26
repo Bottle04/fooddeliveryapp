@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fooddeliveryapp/service/database.dart';
 import 'package:fooddeliveryapp/service/widget_support.dart';
-import 'package:audioplayers/audioplayers.dart'; // Thư viện âm thanh
+import 'package:audioplayers/audioplayers.dart';
 
 class AllOrders extends StatefulWidget {
   const AllOrders({super.key});
@@ -13,8 +13,8 @@ class AllOrders extends StatefulWidget {
 
 class _AllOrdersState extends State<AllOrders> {
   Stream? orderStream;
-  int _currentOrderCount = 0; // Lưu số lượng đơn hàng hiện tại
-  final AudioPlayer _audioPlayer = AudioPlayer(); // Khởi tạo trình phát nhạc
+  int _currentOrderCount = 0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   getontheload() async {
     orderStream = await DatabaseMethods().getAdminOrders();
@@ -27,10 +27,8 @@ class _AllOrdersState extends State<AllOrders> {
     getontheload();
   }
 
-  // Hàm phát chuông báo khi có đơn hàng mới
   Future<void> _playNotificationSound() async {
     try {
-      // Lưu ý: file mp3 phải nằm trong assets và đã khai báo trong pubspec.yaml
       await _audioPlayer.play(AssetSource('notification.mp3'));
     } catch (e) {
       print("Lỗi phát âm thanh: $e");
@@ -39,7 +37,7 @@ class _AllOrdersState extends State<AllOrders> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Giải phóng bộ nhớ
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -51,14 +49,33 @@ class _AllOrdersState extends State<AllOrders> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // logic THÔNG BÁO ĐƠN HÀNG MỚI
-          int newCount = snapshot.data.docs.length;
+          // 1. LẤY DANH SÁCH VÀ TẠO BẢN COPY ĐỂ SẮP XẾP
+          List<DocumentSnapshot> sortedDocs = List.from(snapshot.data.docs);
 
-          // Nếu đây không phải lần đầu load trang và số đơn hàng tăng lên
+          // 2. LOGIC SẮP XẾP TÙY CHỈNH
+          sortedDocs.sort((a, b) {
+            Map<String, dynamic> dataA = a.data() as Map<String, dynamic>;
+            Map<String, dynamic> dataB = b.data() as Map<String, dynamic>;
+
+            bool isDeliveredA = dataA["Status"] == "Delivered";
+            bool isDeliveredB = dataB["Status"] == "Delivered";
+
+            // Ưu tiên 1: Trạng thái (Chưa giao lên trước, Đã giao xuống dưới)
+            if (isDeliveredA != isDeliveredB) {
+              if (isDeliveredA) return 1; // A đã giao -> Đẩy xuống dưới
+              if (!isDeliveredA) return -1; // A chưa giao -> Đẩy lên đầu
+            }
+
+            // Ưu tiên 2: Thời gian (Đơn nào có trước thì lên trước - Tăng dần)
+            Timestamp timeA = dataA["OrderTime"] ?? Timestamp.now();
+            Timestamp timeB = dataB["OrderTime"] ?? Timestamp.now();
+            return timeA.compareTo(timeB);
+          });
+
+          // Logic thông báo (giữ nguyên)
+          int newCount = sortedDocs.length;
           if (_currentOrderCount != 0 && newCount > _currentOrderCount) {
-            _playNotificationSound(); // Phát chuông báo
-
-            // Hiển thị thông báo nổi (SnackBar)
+            _playNotificationSound();
             Future.delayed(Duration.zero, () {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                 content: Text("🔔 Bạn có đơn hàng mới!"),
@@ -67,13 +84,14 @@ class _AllOrdersState extends State<AllOrders> {
               ));
             });
           }
-          _currentOrderCount = newCount; // Cập nhật số lượng mới
+          _currentOrderCount = newCount;
 
           return ListView.builder(
               padding: EdgeInsets.zero,
-              itemCount: snapshot.data.docs.length,
+              // SỬ DỤNG DANH SÁCH ĐÃ SẮP XẾP (sortedDocs)
+              itemCount: sortedDocs.length,
               itemBuilder: (context, index) {
-                DocumentSnapshot ds = snapshot.data.docs[index];
+                DocumentSnapshot ds = sortedDocs[index];
                 Map<String, dynamic> data = ds.data() as Map<String, dynamic>;
 
                 Timestamp? orderTimestamp = data["OrderTime"] as Timestamp?;
@@ -96,7 +114,9 @@ class _AllOrdersState extends State<AllOrders> {
                     child: Container(
                       width: MediaQuery.of(context).size.width,
                       decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDelivered
+                              ? Colors.grey.shade200 // Làm mờ nhẹ đơn đã xong
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(10)),
                       child: Column(children: [
                         Padding(
@@ -104,7 +124,9 @@ class _AllOrdersState extends State<AllOrders> {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: CircleAvatar(
-                              backgroundColor: const Color(0xffef2b39),
+                              backgroundColor: isDelivered
+                                  ? Colors.grey // Đổi màu số thứ tự nếu xong
+                                  : const Color(0xffef2b39),
                               radius: 12,
                               child: Text(
                                 "${index + 1}",
@@ -124,7 +146,9 @@ class _AllOrdersState extends State<AllOrders> {
                                 isAtRestaurant
                                     ? Icons.restaurant
                                     : Icons.delivery_dining,
-                                color: const Color(0xffef2b39)),
+                                color: isDelivered
+                                    ? Colors.grey
+                                    : const Color(0xffef2b39)),
                             const SizedBox(width: 10.0),
                             Flexible(
                               child: Text(
@@ -132,9 +156,11 @@ class _AllOrdersState extends State<AllOrders> {
                                     ? "DINING: ${data["TableNumber"] ?? "N/A"}"
                                     : "DELIVER: ${data["Address"] ?? "Old Order"}",
                                 style: AppWidget.boldTextFeildStyle().copyWith(
-                                    color: isAtRestaurant
-                                        ? Colors.green
-                                        : Colors.blue),
+                                    color: isDelivered
+                                        ? Colors.grey
+                                        : (isAtRestaurant
+                                            ? Colors.green
+                                            : Colors.blue)),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -189,8 +215,6 @@ class _AllOrdersState extends State<AllOrders> {
                                   Text(
                                       "Qty: ${data["Quantity"]} | Total: \$${data["Total"]}",
                                       style: AppWidget.SimpleTextFeildStyle()),
-
-                                  // HIỂN THỊ GHI CHÚ TỪ KHÁCH HÀNG
                                   if (data.containsKey("Note") &&
                                       data["Note"].toString().isNotEmpty)
                                     Padding(
@@ -215,7 +239,6 @@ class _AllOrdersState extends State<AllOrders> {
                                         ),
                                       ),
                                     ),
-
                                   const SizedBox(height: 5.0),
                                   Row(
                                     children: [
@@ -230,7 +253,6 @@ class _AllOrdersState extends State<AllOrders> {
                                     ],
                                   ),
                                   const SizedBox(height: 5.0),
-
                                   Text("${data["Status"]}!",
                                       style: TextStyle(
                                           color: isDelivered
@@ -239,12 +261,12 @@ class _AllOrdersState extends State<AllOrders> {
                                           fontSize: 18.0,
                                           fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 10.0),
-
                                   if (!isDelivered)
                                     GestureDetector(
                                       onTap: () async {
                                         await DatabaseMethods()
                                             .updateAdminOrder(ds.id);
+                                        // Cập nhật cả bên User nếu có thông tin
                                         if (data["Id"] != null &&
                                             data["OrderId"] != null) {
                                           await DatabaseMethods()
